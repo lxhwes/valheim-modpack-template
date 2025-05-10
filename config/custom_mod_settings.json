@@ -1,0 +1,58 @@
+{
+  "modSettings": {
+    "enabled": true,
+    "version": "1.0.0",
+    "debugMode": false
+  },
+  "gameplaySettings": {
+    "difficultySettings": {
+      "enemyHealth": 1.0,
+      "enemyDamage": 1.0,
+      "playerDamage": 1.0,
+      "resourceYield": 1.0
+    },
+    "worldGeneration": {
+      "seedOffset": 0,
+      "biomeSize": "normal",
+      "resourceDensity": "normal",
+      "enemySpawnRate": "normal"
+    },
+    "customFeatures": {
+      "enhancedCrafting": true,
+      "extendedBuildRadius": false,
+      "unlimitedPortals": false,
+      "noStaminaReduction": false
+    }
+  },
+  "visualSettings": {
+    "enableCustomEffects": true,
+    "particleDensity": "medium",
+    "customColors": {
+      "uiAccent": "#4B6F44",
+      "uiBackground": "#2C2C2C",
+      "uiText": "#FFFFFF"
+    }
+  },
+  "keybindings": {
+    "toggleModMenu": "F7",
+    "activateSpecialAbility": "V",
+    "quickCraft": "C"
+  },
+  "compatibility": {
+    "compatibilityMode": true,
+    "knownCompatibleMods": [
+      "BetterUI",
+      "EpicLoot",
+      "ValheimPlus"
+    ],
+    "knownIncompatibleMods": [
+      "ConflictingMod1",
+      "ConflictingMod2"
+    ]
+  },
+  "performance": {
+    "optimizationLevel": 2,
+    "reduceFXInCombat": false,
+    "limitDrawDistance": false
+  }
+}

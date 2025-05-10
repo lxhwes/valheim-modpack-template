@@ -1,0 +1,10 @@
+{
+  "name": "valheim-modpack-template",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/USERNAME/valheim-modpack-template",
+  "description": "A customizable Valheim modpack template. IMPORTANT: This is a template - customize this manifest.json file with your own values before publishing! Add mod dependencies in the format: AuthorName-ModName-Version",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2105",
+    "ValheimModding-Jotunn-2.12.1"
+  ]
+}
