@@ -1,6 +1,6 @@
 # valheim-modpack-template
 
-This is a **modpack template** designed specifically for creating and publishing Valheim modpacks to [Thunderstore.io](https://thunderstore.io/). It provides all the necessary structure and automation to get you started quickly.
+This is a **modpack template** designed specifically for creating and publishing Valheim modpacks to [Thunderstore.io](https://thunderstore.io/). It provides all the necessary structure and automation to get you started publishing modpacks.
 
 ## Purpose
 
@@ -20,10 +20,10 @@ This template serves as a foundation that can be forked and customized to create
 
 ```bash
 # Clone via HTTPS
-git clone https://github.com/yourusername/valheim-modpack-template.git
+git clone https://github.com/lxhwes/valheim-modpack-template.git
 
 # OR clone via SSH
-git clone git@github.com:yourusername/valheim-modpack-template.git
+git clone git@github.com:lxhwes/valheim-modpack-template.git
 
 # Navigate to the project directory
 cd valheim-modpack-template
@@ -152,4 +152,4 @@ This template is provided under the MIT License. You are free to use, modify, an
 
 ---
 
-*This template is designed to be a starting point. Feel free to modify any part of it to suit your specific needs.*
+*This template is designed to be a starting point. Feel free to modify any part of it to suit your specific needs. Have fun!*
