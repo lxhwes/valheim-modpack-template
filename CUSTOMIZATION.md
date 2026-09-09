@@ -303,8 +303,9 @@ commented step by step.
 - Do not swap the action for `pip install tcli`. The PyPI package named `tcli` is unrelated,
   abandoned software from 2019 and has no `publish` command. The real Thunderstore CLI is a
   .NET tool, and the action already wraps it
-- Do not remove the `repo: https://thunderstore.io` input. When it is empty the action's
-  entrypoint drops the `--repository` argument and the publish command breaks
+- Do not remove the `repo: https://thunderstore.io` input. When it is empty the action writes
+  an empty repository into its generated config, and the upload dies with a socket error after
+  the package has already built
 
 ### Publishing Process
 

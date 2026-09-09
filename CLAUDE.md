@@ -73,9 +73,15 @@ version. Requires a repo secret `THUNDERSTORE_TOKEN` with "Upload Packages" perm
 generates a fresh `thunderstore.toml` from action inputs. Renaming the pack therefore means
 editing `manifest.json` `name` and `website_url` only.
 
-The `repo: https://thunderstore.io` input is load-bearing. The action's `entrypoint.sh` falls
-through to an empty `repo` when it is unset, and the unquoted `--repository ${repo}` then drops
-the argument so `--repository` swallows `--file`. Don't remove it.
+The `repo: https://thunderstore.io` input is load-bearing — verified by running the action
+container locally with it omitted. Two things combine:
+
+- `cfg_edit.js` does `repo ?? "https://thunderstore.io"`, and `??` only catches null/undefined,
+  not the empty string the action passes. So `repository = ""` lands in `thunderstore.toml`.
+- `entrypoint.sh` falls through to `repo="$TS_REPO"` (empty) when `TS_REPO` is unset.
+
+The package still builds, then publish prints `Publish to ` with no host and dies in
+`System.Net.Sockets.Socket`. Don't remove the input.
 
 `pip install tcli` was in an earlier version of this workflow. PyPI `tcli` is unrelated
 abandoned software from 2019 with no `publish` command; the real Thunderstore CLI is a .NET

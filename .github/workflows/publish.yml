@@ -86,9 +86,9 @@ jobs:
           path: dist
           community: valheim
           categories: modpacks
-          # Required, not optional: when this input is empty the action's entrypoint drops the
-          # --repository argument entirely and the publish command breaks.
-          # Set to https://thunderstore.dev (or use `dev: true`) to dry-run against the test site.
+          # Required, not optional. When empty, the action writes an empty repository into its
+          # generated config and the upload dies with a socket error after the package builds.
+          # Add `dev: true` to publish to thunderstore.dev instead, to rehearse a release.
           repo: https://thunderstore.io
           # Repo secret holding a Thunderstore API token with the "Upload Packages" permission
           token: ${{ secrets.THUNDERSTORE_TOKEN }}
