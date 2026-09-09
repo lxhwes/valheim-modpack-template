@@ -34,20 +34,28 @@ The `manifest.json` file is the core of the modpack's Thunderstore package. Edit
   "name": "YourModpackName",              // Your unique modpack name
   "version_number": "1.0.0",              // Semantic versioning (MAJOR.MINOR.PATCH)
   "website_url": "https://github.com/YourUsername/YourRepo", // Your repository URL
-  "description": "Your modpack description", // Compelling description (supports markdown)
+  "description": "Your modpack description", // Max 256 characters
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2105",
-    "ValheimModding-Jotunn-2.12.1"
+    "denikson-BepInExPack_Valheim-5.4.2350",
+    "ValheimModding-Jotunn-2.29.2"
     // Add more mod dependencies here
   ]
 }
 ```
 
 **Important Notes:**
-- The `name` must be unique on Thunderstore and contain only alphanumeric characters, underscores, and dashes
-- The `version_number` must follow semantic versioning (MAJOR.MINOR.PATCH)
-- The `description` supports markdown formatting
+- The `name` must be unique on Thunderstore and match `^[a-zA-Z0-9_]+$` — letters, digits and
+  underscores only. **Dashes are rejected.** Your repository name can still contain dashes;
+  this restriction applies only to the package name.
+- The `version_number` must be exactly MAJOR.MINOR.PATCH — no `v` prefix, no suffixes like
+  `-beta`, and 16 characters max
+- The `description` is capped at 256 characters and is plain text, not markdown
+- The `website_url` may be empty, but if set it must be a valid http/https URL
 - Each dependency must exist on Thunderstore and be formatted exactly as shown on the mod's page
+
+**Keeping dependencies current:** the versions above were correct as of September 2026, right
+after the Valheim 1.0 "Deep North" launch. Pinned versions in a template go stale fast — check
+each mod's Thunderstore page for the current version before your first release.
 
 ### 3. Create a Custom Icon
 
@@ -55,18 +63,26 @@ The `icon.png` file is required by Thunderstore and appears on your modpack's pa
 
 **Requirements:**
 - Must be a PNG file format
-- Must have square dimensions (at least 256x256 pixels, 512x512 recommended)
+- Must be **exactly 256x256 pixels**. This is not a minimum — Thunderstore rejects any other
+  size outright rather than resizing it, so a 512x512 icon fails the upload
+- Must be under 6 MiB
 - Should be visually representative of your modpack
 
 **Creating an Icon:**
 1. Use image editing software like GIMP, Photoshop, or online tools like Canva
-2. Create a square canvas (512x512 pixels recommended)
+2. Create a 256x256 canvas
 3. Design your icon with clear, recognizable elements
 4. Export as PNG and replace the existing `icon.png` file
 
 **Example Command (if you have ImageMagick installed):**
 ```bash
-convert -size 512x512 -background "#4B6F44" -fill white -gravity center -font Helvetica -pointsize 48 label:"My Awesome\nValheim Modpack" icon.png
+magick -size 256x256 -background "#4B6F44" -fill white -gravity center -font Helvetica -pointsize 24 label:"My Awesome\nValheim Modpack" icon.png
+```
+
+**Check it before you release** (no extra packages needed):
+```bash
+python3 -c "import struct;d=open('icon.png','rb').read();print('PNG' if d[:8]==b'\x89PNG\r\n\x1a\n' else 'NOT PNG', struct.unpack('>II',d[16:24]))"
+# must print: PNG (256, 256)
 ```
 
 ### 4. Update the README.md
@@ -106,8 +122,8 @@ Brief description of the modpack.
 
 | Mod Name | Author | Version | Description |
 |----------|--------|---------|-------------|
-| BepInExPack | denikson | 5.4.2105 | Core modding framework |
-| Jotunn | ValheimModding | 2.12.1 | Modding library |
+| BepInExPack | denikson | 5.4.2350 | Core modding framework |
+| Jotunn | ValheimModding | 2.29.2 | Modding library |
 | [Additional Mod] | [Author] | [Version] | [Description] |
 
 ## Configuration
@@ -138,7 +154,7 @@ This modpack is released under [Your License] license.
 2. Test mods individually or in combinations to ensure compatibility
 3. For each mod you want to include, note its dependency string:
    - Format: `AuthorName-ModName-Version`
-   - Example: `denikson-BepInExPack_Valheim-5.4.2105`
+   - Example: `denikson-BepInExPack_Valheim-5.4.2350`
    - This can be found on the mod's Thunderstore page
 
 ### Adding Mods to Your Modpack
@@ -147,8 +163,8 @@ This modpack is released under [Your License] license.
 
 ```json
 "dependencies": [
-  "denikson-BepInExPack_Valheim-5.4.2105",
-  "ValheimModding-Jotunn-2.12.1",
+  "denikson-BepInExPack_Valheim-5.4.2350",
+  "ValheimModding-Jotunn-2.29.2",
   "AuthorName-ModName-Version",
   "AnotherAuthor-AnotherMod-Version"
 ]
@@ -158,12 +174,17 @@ This modpack is released under [Your License] license.
 
 ### Dependency Order and Management
 
-The order of dependencies in your manifest.json is critical for proper mod loading:
+**Order in `manifest.json` does not affect load order.** Thunderstore treats `dependencies` as
+a set — it validates for duplicates and self-reference, but never installs in list order.
+Runtime load order comes from each plugin's own `[BepInDependency]` attributes, which mod
+authors set when they build the DLL. Nothing you write in the manifest changes it.
 
-1. **Core frameworks** (BepInEx, Jotunn) must be listed first
-2. **Libraries and APIs** that other mods depend on should be next
-3. **Mods that other mods depend on** should be listed before their dependents
-4. **Independent mods** can be listed last
+Order the list however reads best for a human. Grouping frameworks first, then libraries, then
+content mods is a reasonable convention, just don't expect it to fix a load-order bug.
+
+You also don't strictly need to list a library that another mod already depends on —
+Thunderstore resolves those transitively. Most published modpacks pin them explicitly anyway,
+so the exact versions are recorded rather than floating.
 
 **Tips for Dependency Management:**
 - Create a spreadsheet or document to track your mods and their dependencies
@@ -179,20 +200,27 @@ Proper configuration is key to creating a cohesive modpack experience:
 
 1. Install the mods locally using a mod manager to generate default configs
 2. Adjust settings to create your desired gameplay experience
-3. Copy the configuration files to your modpack's `config/` directory
-4. Follow the structure expected by the mods:
+3. In r2modman, use Settings → "Browse profile folder" and open `BepInEx/config`
+4. Copy the `.cfg` files you changed straight into this repo's `config/` directory:
 
 ```
 config/
-├── BepInEx/
-│   └── config/
-│       ├── mod1.cfg
-│       └── mod2.cfg
-└── othermod/
-    └── settings.json
+├── mod1.cfg
+└── mod2.cfg
 ```
 
+**Do not nest a `BepInEx/config/` folder inside `config/`.** The mod manager matches the
+`config` folder by name and copies its *contents* into the profile's `BepInEx/config/`. An
+extra `BepInEx/config` layer inside it gets copied verbatim, so your files land at
+`BepInEx/config/BepInEx/config/mod1.cfg` and no mod ever reads them.
+
+Config files install flat, with no per-mod subfolder, and overwrite any file of the same name
+already in the profile. This is different from `plugins/`, where each package gets its own
+`Author-ModName` subfolder.
+
 **Important Notes:**
+- Ship only `config/`. Modpacks normally contain no code or assets of their own, so there is
+  no reason to copy `core/` or `plugins/` out of a working profile
 - Test all configurations thoroughly before including them
 - Document any significant configuration changes in your README.md
 - Consider creating a separate document explaining your configuration choices
@@ -257,51 +285,26 @@ To develop a polished, functional modpack:
 
 ### Customizing the GitHub Actions Workflow
 
-The `.github/workflows/publish.yml` file controls the automated publishing process:
-
-```yaml
-name: Publish to Thunderstore
-
-on:
-  release:
-    types: [published]
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
-      - name: Install tcli
-        run: pip install tcli
-        
-      - name: Publish to Thunderstore
-        env:
-          THUNDERSTORE_API_TOKEN: ${{ secrets.THUNDERSTORE_TOKEN }}
-        run: |
-          # Extract version from tag (remove 'v' prefix if present)
-          VERSION=${GITHUB_REF_NAME#v}
-          
-          # Publish using tcli
-          tcli publish \
-            --token $THUNDERSTORE_API_TOKEN \
-            --package-name valheim-modpack-template \
-            --package-version $VERSION \
-            --namespace ${{ github.repository_owner }} \
-            --community valheim \
-            --categories Modpacks \
-            --file .
-```
+The `.github/workflows/publish.yml` file controls the automated publishing process. It reads
+your `manifest.json`, checks the release tag against it, stages the files that belong in the
+package, and uploads with `GreenTF/upload-thunderstore-package`. Read the file itself — it is
+commented step by step.
 
 **Customization Options:**
-- Change `--package-name valheim-modpack-template` to your modpack name
-- Modify `--categories Modpacks` to include additional categories
-- Add additional build steps if required
+- `namespace` defaults to the GitHub user or org that owns the repo. Change it if your
+  Thunderstore team is named differently
+- `categories: modpacks` can take a comma-separated list if you want more than one
+- Set `dev: true` to publish to `https://thunderstore.dev` instead, so you can rehearse a
+  release without burning a real version number
+- Everything else — name, version, description, website, dependencies — comes from
+  `manifest.json`, so edit that file rather than the workflow
+
+**Two things not to change:**
+- Do not swap the action for `pip install tcli`. The PyPI package named `tcli` is unrelated,
+  abandoned software from 2019 and has no `publish` command. The real Thunderstore CLI is a
+  .NET tool, and the action already wraps it
+- Do not remove the `repo: https://thunderstore.io` input. When it is empty the action's
+  entrypoint drops the `--repository` argument and the publish command breaks
 
 ### Publishing Process
 
@@ -443,16 +446,18 @@ Thunderstore does not support in-place updates for modpacks, a new version must 
 ## Publishing Final Checklist
 
 - [ ] **Manifest.json is correctly formatted**
-  - [ ] Name is unique and follows naming conventions
-  - [ ] Version number follows semantic versioning
+  - [ ] Name is unique, and uses only letters, digits and underscores (no dashes)
+  - [ ] Version number is exactly MAJOR.MINOR.PATCH, and matches your release tag
   - [ ] Website URL points to your repository
-  - [ ] Description is informative and well-formatted
-  - [ ] All dependencies are correctly listed with proper versions
+  - [ ] Description is informative and under 256 characters
+  - [ ] All dependencies are correctly listed with current versions
 
 - [ ] **Icon.png meets requirements**
   - [ ] PNG format
-  - [ ] Square dimensions (at least 256x256)
+  - [ ] Exactly 256x256, under 6 MiB
   - [ ] Visually representative of your modpack
+
+- [ ] **README.md exists** — the upload is rejected without it
 
 - [ ] **Documentation is complete**
   - [ ] README.md contains all necessary information
@@ -466,7 +471,7 @@ Thunderstore does not support in-place updates for modpacks, a new version must 
   - [ ] Configs are placed in the correct directories
 
 - [ ] **GitHub Actions workflow is configured**
-  - [ ] publish.yml is updated with your modpack name
+  - [ ] `namespace` in publish.yml matches your Thunderstore team
   - [ ] THUNDERSTORE_TOKEN secret is set in repository settings
 
 - [ ] **Testing is complete**
