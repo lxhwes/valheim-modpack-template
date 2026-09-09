@@ -9,46 +9,86 @@ on:
 
 jobs:
   publish:
+    # Must be Linux: GreenTF/upload-thunderstore-package is a Docker container action
     runs-on: ubuntu-latest
     steps:
       # Check out the repository code
-      - uses: actions/checkout@v3
-        with:
-          # Full git history is needed to get the correct version number from tags
-          fetch-depth: 0
-      
-      # Set up Python environment for the Thunderstore CLI
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
-      # Install the Thunderstore CLI tool
-      - name: Install tcli
-        run: pip install tcli
-        
-      # Publish the modpack to Thunderstore
-      # IMPORTANT: Customize the package-name parameter below to match your modpack name
-      - name: Publish to Thunderstore
-        env:
-          # This uses the THUNDERSTORE_TOKEN secret you must set in your repository settings
-          THUNDERSTORE_API_TOKEN: ${{ secrets.THUNDERSTORE_TOKEN }}
+      - uses: actions/checkout@v7
+
+      # The release tag drives the published version, but manifest.json carries its own
+      # version_number. If the two disagree, Thunderstore silently gets the tag's value and
+      # your manifest lies. Fail loudly instead.
+      - name: Check tag matches manifest.json
         run: |
-          # Extract version from tag (remove 'v' prefix if present)
-          VERSION=${GITHUB_REF_NAME#v}
-          
-          # Display information about the publishing process
-          echo "Publishing modpack to Thunderstore"
-          echo "Version: $VERSION"
-          echo "Owner: ${{ github.repository_owner }}"
-          
-          # Publish using tcli
-          # CUSTOMIZE: Change 'valheim-modpack-template' below to your actual modpack name
-          tcli publish \
-            --token $THUNDERSTORE_API_TOKEN \
-            --package-name valheim-modpack-template \
-            --package-version $VERSION \
-            --namespace ${{ github.repository_owner }} \
-            --community valheim \
-            --categories Modpacks \
-            --file .
+          TAG_VERSION="${GITHUB_REF_NAME#v}"          # strip a leading 'v' from e.g. v1.2.3
+          MANIFEST_VERSION="$(jq -r .version_number manifest.json)"
+          echo "Tag version:      $TAG_VERSION"
+          echo "Manifest version: $MANIFEST_VERSION"
+          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' does not match manifest.json version_number '$MANIFEST_VERSION'"
+            exit 1
+          fi
+
+      # The publishing action below does NOT read manifest.json - it builds its own package
+      # config from the `with:` inputs. To keep manifest.json as the one file you edit, we
+      # read the values out here and hand them to the action.
+      - name: Read manifest.json
+        id: manifest
+        run: |
+          {
+            echo "name=$(jq -r .name manifest.json)"
+            echo "description=$(jq -r .description manifest.json)"
+            echo "website=$(jq -r .website_url manifest.json)"
+            # Dependencies go in newline-delimited; the action converts newlines to spaces.
+            echo "deps<<DEPS_EOF"
+            jq -r '.dependencies[]' manifest.json
+            echo "DEPS_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Thunderstore uploads the whole directory you point at, so stage only what belongs in
+      # the package. Without this, LICENSE, CLAUDE.md, .gitignore and .github/ all ship to
+      # users inside the zip.
+      #
+      # README.md and icon.png are REQUIRED at the package root - the upload is rejected
+      # without them. CHANGELOG.md is optional; when present Thunderstore renders it as its
+      # own tab on the package page.
+      - name: Stage package contents
+        run: |
+          mkdir -p dist
+          # config/ and plugins/ are matched by name by the mod manager. Files in config/
+          # install flat into the profile's BepInEx/config/; plugins/ into BepInEx/plugins/.
+          for d in config plugins; do
+            [ -d "$d" ] && cp -r "$d" dist/
+          done
+          cp README.md icon.png dist/
+          [ -f CHANGELOG.md ] && cp CHANGELOG.md dist/
+          echo "Staged package contents:"
+          find dist -type f | sort
+
+      # Publish the modpack to Thunderstore.
+      #
+      # There is no official Thunderstore GitHub Action; the Thunderstore wiki points at this
+      # community one. It wraps the real Thunderstore CLI (a .NET tool - note that the PyPI
+      # package named "tcli" is unrelated abandoned software, so never `pip install tcli`).
+      - name: Publish to Thunderstore
+        uses: GreenTF/upload-thunderstore-package@v4.3
+        with:
+          # Your Thunderstore team name. Defaults to the GitHub org/user that owns this repo -
+          # change it if your Thunderstore team is named differently.
+          namespace: ${{ github.repository_owner }}
+          # Package name must match ^[a-zA-Z0-9_]+$ - letters, digits and underscores only.
+          # Dashes are rejected by Thunderstore.
+          name: ${{ steps.manifest.outputs.name }}
+          version: ${{ github.ref_name }}
+          description: ${{ steps.manifest.outputs.description }}
+          website: ${{ steps.manifest.outputs.website }}
+          deps: ${{ steps.manifest.outputs.deps }}
+          path: dist
+          community: valheim
+          categories: modpacks
+          # Required, not optional. When empty, the action writes an empty repository into its
+          # generated config and the upload dies with a socket error after the package builds.
+          # Add `dev: true` to publish to thunderstore.dev instead, to rehearse a release.
+          repo: https://thunderstore.io
+          # Repo secret holding a Thunderstore API token with the "Upload Packages" permission
+          token: ${{ secrets.THUNDERSTORE_TOKEN }}
