@@ -29,11 +29,17 @@ bld/
 [Ll]ogs/
 
 # Thunderstore specific
+# The publish workflow generates thunderstore.toml inside the action container, so this
+# repo must not carry one of its own.
 thunderstore.toml
 thunderstore/
+# Staging directory built by the publish workflow
+dist/
 
 # Valheim specific
-BepInEx/
+# Anchored to the repo root so it only ignores a local Valheim install dropped here.
+# Unanchored, this would also ignore config/BepInEx/ and silently drop your mod configs.
+/BepInEx/
 doorstop_config.ini
 winhttp.dll
 
